@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <VideoView
+        android:id="@+id/my_video_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/video_thumb"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@mipmap/blank"
+        app:layout_constraintLeft_toLeftOf="@id/my_video_view"
+        app:layout_constraintTop_toTopOf="@id/my_video_view"
+        tools:ignore="ContentDescription" />
+
+    <LinearLayout
+        android:id="@+id/controller_layout"
+        android:layout_width="match_parent"
+        android:layout_height="57dp"
+        android:background="@android:color/transparent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        tools:visibility="visible">
+
+        <ImageButton
+            android:id="@+id/play_btn"
+            android:layout_width="17dp"
+            android:layout_height="17dp"
+            android:layout_marginEnd="15dp"
+            android:background="@mipmap/icon_video_play"
+            tools:ignore="ContentDescription" />
+
+        <TextView
+            android:id="@+id/already_play_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#fff"
+            android:textSize="12sp"
+            tools:text="22:22" />
+
+        <SeekBar
+            android:id="@+id/seek_bar_progress"
+            android:layout_width="0dp"
+            android:layout_height="12dp"
+            android:layout_weight="1"
+            android:maxHeight="2dp"
+            android:progressDrawable="@drawable/seek_bar_style"
+            android:thumb="@drawable/seek_bar_thumb"
+            android:thumbOffset="0dp" />
+
+        <TextView
+            android:id="@+id/total_play_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#fff"
+            android:textSize="12sp"
+            tools:text="22:22" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
