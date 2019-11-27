@@ -57,7 +57,9 @@
             android:layout_width="0dp"
             android:layout_height="12dp"
             android:layout_weight="1"
+            android:indeterminate="false"
             android:maxHeight="2dp"
+            android:padding="0dp"
             android:progressDrawable="@drawable/seek_bar_style"
             android:thumb="@drawable/seek_bar_thumb"
             android:thumbOffset="0dp" />

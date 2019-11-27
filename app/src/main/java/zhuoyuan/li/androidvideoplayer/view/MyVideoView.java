@@ -2,7 +2,6 @@ package zhuoyuan.li.androidvideoplayer.view;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
@@ -19,11 +18,9 @@ import android.widget.VideoView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
 
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import butterknife.internal.Utils;
 import zhuoyuan.li.androidvideoplayer.R;
 import zhuoyuan.li.androidvideoplayer.data.VideoInfo;
 import zhuoyuan.li.androidvideoplayer.util.Util;
@@ -52,7 +49,7 @@ public class MyVideoView extends ConstraintLayout {
     ImageView videoThumb;
 
     private VideoState mVideoState = VideoState.unKnow;
-    private int mDuration;
+    private int mDuration = 0;
     private Context mContext;
 
     private OnProgressChangedListener mOnProgressChangedListener = null;
@@ -138,21 +135,19 @@ public class MyVideoView extends ConstraintLayout {
         super(context, attrs, defStyleAttr);
         this.mContext = context;
         final View videoLayout = LayoutInflater.from(context).inflate(R.layout.video_layout, this, true);
-        ButterKnife.bind(videoLayout);
+        ButterKnife.bind(this, videoLayout);
         initView();
     }
 
     private void initView() {
-        alreadyTextView.setText(Util.formatTimeWhichExist(mDuration));
-
         videoView.setOnInfoListener((mp, what, extra) -> false);
 
         videoView.setOnPreparedListener(mp -> {
             mVideoState = VideoState.loadFinish;
-            mHandler.sendEmptyMessage(UPDATE_PROGRESS);
             totalPlayTextView.setText(Util.formatTimeWhichExist(mDuration));
             videoThumb.setVisibility(GONE);
             start();
+            mHandler.sendEmptyMessage(UPDATE_PROGRESS);
         });
 
         videoView.setOnCompletionListener(mp -> {
@@ -218,6 +213,8 @@ public class MyVideoView extends ConstraintLayout {
         try {
             videoView.setVideoURI(Uri.parse(video.getUrl()));
             mDuration = (int) video.getDuration();
+            alreadyTextView.setText(Util.formatTimeWhichExist(mDuration));
+
             seekBarProgress.setMax(mDuration);
             start();
 
