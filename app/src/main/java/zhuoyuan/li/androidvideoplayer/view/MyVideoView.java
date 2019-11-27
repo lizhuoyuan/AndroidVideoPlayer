@@ -51,7 +51,6 @@ public class MyVideoView extends ConstraintLayout {
     @BindView(R.id.video_thumb)
     ImageView videoThumb;
 
-    private MediaPlayer mMediaPlayer;
     private VideoState mVideoState = VideoState.unKnow;
     private int mDuration;
     private Context mContext;
@@ -146,10 +145,7 @@ public class MyVideoView extends ConstraintLayout {
     private void initView() {
         alreadyTextView.setText(Util.formatTimeWhichExist(mDuration));
 
-        videoView.setOnInfoListener((mp, what, extra) -> {
-            mMediaPlayer = mp;
-            return false;
-        });
+        videoView.setOnInfoListener((mp, what, extra) -> false);
 
         videoView.setOnPreparedListener(mp -> {
             mVideoState = VideoState.loadFinish;
