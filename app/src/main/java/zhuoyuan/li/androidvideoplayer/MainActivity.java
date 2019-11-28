@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
 
         VideoInfo videoInfo = new VideoInfo(
                 "http://cdn.flashgo.online/news-video/abd84aca-a439-4a94-911a-8f38df6a5fab",
-                36000,
+                36,
                 640,
                 800
         );

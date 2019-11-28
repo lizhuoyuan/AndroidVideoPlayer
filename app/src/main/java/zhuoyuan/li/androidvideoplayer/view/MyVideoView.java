@@ -8,11 +8,11 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.VideoView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -29,6 +29,7 @@ import zhuoyuan.li.androidvideoplayer.util.ScreenUtils;
 import zhuoyuan.li.androidvideoplayer.util.TimeUtil;
 
 public class MyVideoView extends ConstraintLayout {
+
     public interface OnProgressChangedListener {
         void onProgressChanged(int progress);
     }
@@ -49,6 +50,10 @@ public class MyVideoView extends ConstraintLayout {
     TextView totalPlayTextView;
     @BindView(R.id.video_thumb)
     ImageView videoThumb;
+    @BindView(R.id.error_layout)
+    ViewGroup mErrorLayout;
+    @BindView(R.id.error_btn)
+    Button mErrorBtn;
 
     private View videoLayout;
 
@@ -143,19 +148,22 @@ public class MyVideoView extends ConstraintLayout {
         videoView.setOnErrorListener((mp, what, extra) -> {
             //异常回调
             mVideoState = VideoState.error;
-            return false;
+            mErrorLayout.setVisibility(VISIBLE);
+            setProgressBarVisible(false);
+            return true;
         });
 
         seekBarProgress.setOnSeekBarChangeListener(seekBarChangeListener);
     }
 
     public void start() {
-        if (mVideoState == VideoState.playEnd) {
+        if (mVideoState == VideoState.playEnd || mVideoState == VideoState.error) {
             videoView.resume();
             seekBarProgress.setProgress(0);
         } else {
             videoView.start();
         }
+        mErrorLayout.setVisibility(GONE);
         mVideoState = VideoState.playing;
         changePlayIcon();
         mHandler.sendEmptyMessage(UPDATE_PROGRESS);
@@ -190,9 +198,10 @@ public class MyVideoView extends ConstraintLayout {
     public void setVideo(VideoInfo video) {
         try {
             videoView.setVideoURI(Uri.parse(video.getUrl()));
-            mDuration = (int) video.getDuration();
+            mDuration = (int) video.getDuration() * 1000;
             alreadyTextView.setText(TimeUtil.formatTimeWhichExist(mDuration));
             seekBarProgress.setMax(mDuration);
+            //  CacheImage.load(videoThumb, video.getCoverUrl(), 0);
 
             if (mHandler == null) {
                 mHandler = new MyHandler(
@@ -237,12 +246,19 @@ public class MyVideoView extends ConstraintLayout {
         layoutParams.height = (int) (ScreenUtils.getScreenWidth(mContext) / aspectRatio);
     }
 
-    @OnClick(R.id.play_btn)
-    public void onViewClicked() {
-        if (videoView.isPlaying()) {
-            pause();
-        } else {
-            start();
+    @OnClick({R.id.play_btn, R.id.error_btn})
+    public void onViewClicked(View view) {
+        switch (view.getId()) {
+            case R.id.play_btn:
+                if (videoView.isPlaying()) {
+                    pause();
+                } else {
+                    start();
+                }
+                break;
+            case R.id.error_btn:
+                start();
+                break;
         }
     }
 
