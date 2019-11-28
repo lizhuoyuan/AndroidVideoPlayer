@@ -1,6 +1,5 @@
 package zhuoyuan.li.androidvideoplayer.view;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
@@ -13,20 +12,23 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.VideoView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
+
+import java.lang.ref.WeakReference;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import zhuoyuan.li.androidvideoplayer.R;
 import zhuoyuan.li.androidvideoplayer.data.VideoInfo;
-import zhuoyuan.li.androidvideoplayer.util.Util;
+import zhuoyuan.li.androidvideoplayer.util.ScreenUtils;
+import zhuoyuan.li.androidvideoplayer.util.TimeUtil;
 
 public class MyVideoView extends ConstraintLayout {
-
     public interface OnProgressChangedListener {
         void onProgressChanged(int progress);
     }
@@ -48,8 +50,10 @@ public class MyVideoView extends ConstraintLayout {
     @BindView(R.id.video_thumb)
     ImageView videoThumb;
 
+    private View videoLayout;
+
     private VideoState mVideoState = VideoState.unKnow;
-    private int mDuration = 0;
+    private int mDuration;
     private Context mContext;
 
     private OnProgressChangedListener mOnProgressChangedListener = null;
@@ -58,35 +62,13 @@ public class MyVideoView extends ConstraintLayout {
         mOnProgressChangedListener = listener;
     }
 
-    @SuppressLint("HandlerLeak")
-    private final Handler mHandler = new Handler() {
-
-        @SuppressLint("SetTextI18n")
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.what == UPDATE_PROGRESS) {
-                if (videoView.isPlaying()) {
-                    int currentTime = videoView.getCurrentPosition();
-                    if (currentTime >= mDuration) {
-                        videoView.seekTo(0);
-                        seekBarProgress.setProgress(0);
-                        alreadyTextView.setText("00:00");
-                        mHandler.removeMessages(UPDATE_PROGRESS);
-                    } else {
-                        seekBarProgress.setProgress(currentTime);
-                        mHandler.sendEmptyMessageDelayed(UPDATE_PROGRESS, 500);
-                        alreadyTextView.setText(Util.formatTimeWhichExist(currentTime));
-                    }
-                }
-            }
-        }
-    };
+    private Handler mHandler;
 
     private SeekBar.OnSeekBarChangeListener seekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
 
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            alreadyTextView.setText(Util.formatTimeWhichExist(progress));
+            alreadyTextView.setText(TimeUtil.formatTimeWhichExist(progress));
             if (mOnProgressChangedListener != null) {
                 mOnProgressChangedListener.onProgressChanged(progress);
             }
@@ -108,7 +90,6 @@ public class MyVideoView extends ConstraintLayout {
                     mHandler.sendEmptyMessage(UPDATE_PROGRESS);
                 } else {
                     mVideoState = VideoState.playEnd;
-                    start();
                 }
             }
         }
@@ -134,29 +115,29 @@ public class MyVideoView extends ConstraintLayout {
     public MyVideoView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         this.mContext = context;
-        final View videoLayout = LayoutInflater.from(context).inflate(R.layout.video_layout, this, true);
+        videoLayout = LayoutInflater.from(context).inflate(R.layout.video_layout, this, true);
         ButterKnife.bind(this, videoLayout);
         initView();
     }
 
     private void initView() {
-        videoView.setOnInfoListener((mp, what, extra) -> false);
-
         videoView.setOnPreparedListener(mp -> {
             mVideoState = VideoState.loadFinish;
-            totalPlayTextView.setText(Util.formatTimeWhichExist(mDuration));
+            totalPlayTextView.setText(TimeUtil.formatTimeWhichExist(mDuration));
             videoThumb.setVisibility(GONE);
             start();
-            mHandler.sendEmptyMessage(UPDATE_PROGRESS);
+            if (mHandler != null) {
+                mHandler.sendEmptyMessage(UPDATE_PROGRESS);
+            }
         });
 
         videoView.setOnCompletionListener(mp -> {
             mHandler.removeMessages(UPDATE_PROGRESS);
             mVideoState = VideoState.playEnd;
-            changePlayIcon();
-            seekBarProgress.setProgress(0);
-            alreadyTextView.setText("00:00");
-            videoThumb.setVisibility(VISIBLE);
+            start();
+            if (mOnProgressChangedListener != null) {
+                mOnProgressChangedListener.onProgressChanged(mDuration);
+            }
         });
 
         videoView.setOnErrorListener((mp, what, extra) -> {
@@ -171,6 +152,7 @@ public class MyVideoView extends ConstraintLayout {
     public void start() {
         if (mVideoState == VideoState.playEnd) {
             videoView.resume();
+            seekBarProgress.setProgress(0);
         } else {
             videoView.start();
         }
@@ -190,12 +172,8 @@ public class MyVideoView extends ConstraintLayout {
         mHandler.removeMessages(UPDATE_PROGRESS);
     }
 
-    public void setVideoVisible() {
-        controllerLayout.setVisibility(VISIBLE);
-    }
-
-    public void setVideoGone() {
-        controllerLayout.setVisibility(GONE);
+    public void setProgressBarVisible(boolean visible) {
+        controllerLayout.setVisibility(visible ? VISIBLE : INVISIBLE);
     }
 
     public VideoState getState() {
@@ -213,19 +191,29 @@ public class MyVideoView extends ConstraintLayout {
         try {
             videoView.setVideoURI(Uri.parse(video.getUrl()));
             mDuration = (int) video.getDuration();
-            alreadyTextView.setText(Util.formatTimeWhichExist(mDuration));
-
+            alreadyTextView.setText(TimeUtil.formatTimeWhichExist(mDuration));
             seekBarProgress.setMax(mDuration);
-            start();
 
+            if (mHandler == null) {
+                mHandler = new MyHandler(
+                        videoLayout,
+                        mDuration
+                );
+            }
             //宽高比
             int width = video.getWidth();
             int height = video.getHeight();
 
             float aspectRatio = (float) width / height;
-            ConstraintLayout.LayoutParams layoutParamsThumb = (ConstraintLayout.LayoutParams) videoThumb.getLayoutParams(); //取控件textView当前的布局参数
+
+            LayoutParams layoutParamsVideo = (LayoutParams) videoView.getLayoutParams();
+            LayoutParams layoutParamsThumb = (LayoutParams) videoThumb.getLayoutParams();
+            setLayoutParam(layoutParamsVideo, aspectRatio);
             setLayoutParam(layoutParamsThumb, aspectRatio);
+            videoView.setLayoutParams(layoutParamsVideo);
             videoThumb.setLayoutParams(layoutParamsThumb);
+
+            start();
         } catch (Throwable ignore) {
         }
     }
@@ -234,11 +222,11 @@ public class MyVideoView extends ConstraintLayout {
         videoPlayBtn.setBackground(ContextCompat.getDrawable(
                 mContext,
                 videoView.isPlaying() ?
-                        R.mipmap.icon_video_pause :
-                        R.mipmap.icon_video_play));
+                        R.drawable.icon_video_pause :
+                        R.drawable.icon_video_play));
     }
 
-    private void setLayoutParam(ConstraintLayout.LayoutParams layoutParams, float aspectRatio) {
+    private void setLayoutParam(LayoutParams layoutParams, float aspectRatio) {
         if (aspectRatio == 1) {
             layoutParams.topMargin = 105;
         } else if (aspectRatio > 1) {
@@ -246,17 +234,53 @@ public class MyVideoView extends ConstraintLayout {
         } else {
             layoutParams.topMargin = 0;
         }
-        layoutParams.height = (int) (Util.getScreenWidth(mContext) / aspectRatio);
+        layoutParams.height = (int) (ScreenUtils.getScreenWidth(mContext) / aspectRatio);
     }
 
     @OnClick(R.id.play_btn)
     public void onViewClicked() {
-        videoPlayBtn.setOnClickListener(v -> {
-            if (videoView.isPlaying()) {
-                pause();
-            } else {
-                start();
+        if (videoView.isPlaying()) {
+            pause();
+        } else {
+            start();
+        }
+    }
+
+    private static class MyHandler extends Handler {
+        private WeakReference<View> mVideoViewWeakReference;
+        private int duration;
+
+        MyHandler(View rootView, int duration) {
+            this.mVideoViewWeakReference = new WeakReference<>(rootView);
+            this.duration = duration;
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            View rootView = mVideoViewWeakReference.get();
+            TextView alreadyTextView = rootView.findViewById(R.id.already_play_text);
+            SeekBar seekBarProgress = rootView.findViewById(R.id.seek_bar_progress);
+            VideoView videoView = rootView.findViewById(R.id.my_video_view);
+
+            if (videoView == null) {
+                return;
             }
-        });
+            if (msg.what == UPDATE_PROGRESS) {
+                if (videoView.isPlaying()) {
+                    int currentTime = videoView.getCurrentPosition();
+                    if (currentTime >= duration) {
+                        videoView.seekTo(0);
+                        seekBarProgress.setProgress(0);
+                        alreadyTextView.setText("00:00");
+                        removeMessages(UPDATE_PROGRESS);
+                    } else {
+                        seekBarProgress.setProgress(currentTime);
+                        sendEmptyMessageDelayed(UPDATE_PROGRESS, 500);
+                        alreadyTextView.setText(TimeUtil.formatTimeWhichExist(currentTime));
+                    }
+                }
+            }
+        }
     }
 }
