@@ -93,12 +93,12 @@ public class MyVideoView extends ConstraintLayout {
                 if (progress + 1000 < mDuration) {
                     // 设置当前播放的位置
                     videoView.seekTo(progress);
-                    mHandler.sendEmptyMessage(UPDATE_PROGRESS);
                 } else {
                     mVideoState = VideoState.playEnd;
                     videoView.seekTo(0);
                     start();
                 }
+                mHandler.sendEmptyMessage(UPDATE_PROGRESS);
             }
         }
     };
@@ -141,7 +141,6 @@ public class MyVideoView extends ConstraintLayout {
         });
 
         videoView.setOnCompletionListener(mp -> {
-            mHandler.removeMessages(UPDATE_PROGRESS);
             mVideoState = VideoState.playEnd;
             if (mOnProgressChangedListener != null) {
                 mOnProgressChangedListener.onProgressChanged(mDuration);
@@ -287,18 +286,15 @@ public class MyVideoView extends ConstraintLayout {
                 return;
             }
             if (msg.what == UPDATE_PROGRESS) {
-                if (videoView.isPlaying()) {
-                    int currentTime = videoView.getCurrentPosition();
-                    if (currentTime >= duration) {
-                        videoView.seekTo(0);
-                        seekBarProgress.setProgress(0);
-                        alreadyTextView.setText("00:00");
-                        removeMessages(UPDATE_PROGRESS);
-                    } else {
-                        seekBarProgress.setProgress(currentTime);
-                        sendEmptyMessageDelayed(UPDATE_PROGRESS, 500);
-                        alreadyTextView.setText(TimeUtil.formatTimeWhichExist(currentTime));
-                    }
+                int currentTime = videoView.getCurrentPosition();
+                if (currentTime >= duration) {
+                    videoView.seekTo(0);
+                    seekBarProgress.setProgress(0);
+                    alreadyTextView.setText("00:00");
+                } else {
+                    seekBarProgress.setProgress(currentTime);
+                    sendEmptyMessageDelayed(UPDATE_PROGRESS, 500);
+                    alreadyTextView.setText(TimeUtil.formatTimeWhichExist(currentTime));
                 }
             }
         }
