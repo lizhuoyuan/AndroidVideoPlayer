@@ -25,6 +25,7 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import zhuoyuan.li.androidvideoplayer.R;
 import zhuoyuan.li.androidvideoplayer.data.VideoInfo;
+import zhuoyuan.li.androidvideoplayer.util.DensityUtils;
 import zhuoyuan.li.androidvideoplayer.util.ScreenUtils;
 import zhuoyuan.li.androidvideoplayer.util.TimeUtil;
 
@@ -95,6 +96,8 @@ public class MyVideoView extends ConstraintLayout {
                     mHandler.sendEmptyMessage(UPDATE_PROGRESS);
                 } else {
                     mVideoState = VideoState.playEnd;
+                    videoView.seekTo(0);
+                    start();
                 }
             }
         }
@@ -127,6 +130,7 @@ public class MyVideoView extends ConstraintLayout {
 
     private void initView() {
         videoView.setOnPreparedListener(mp -> {
+            mp.setLooping(true);
             mVideoState = VideoState.loadFinish;
             totalPlayTextView.setText(TimeUtil.formatTimeWhichExist(mDuration));
             videoThumb.setVisibility(GONE);
@@ -139,7 +143,6 @@ public class MyVideoView extends ConstraintLayout {
         videoView.setOnCompletionListener(mp -> {
             mHandler.removeMessages(UPDATE_PROGRESS);
             mVideoState = VideoState.playEnd;
-            start();
             if (mOnProgressChangedListener != null) {
                 mOnProgressChangedListener.onProgressChanged(mDuration);
             }
@@ -172,6 +175,7 @@ public class MyVideoView extends ConstraintLayout {
     public void pause() {
         videoView.pause();
         mVideoState = VideoState.pause;
+
         changePlayIcon();
     }
 
@@ -237,9 +241,9 @@ public class MyVideoView extends ConstraintLayout {
 
     private void setLayoutParam(LayoutParams layoutParams, float aspectRatio) {
         if (aspectRatio == 1) {
-            layoutParams.topMargin = 105;
+            layoutParams.topMargin = DensityUtils.dp2px(mContext, 105);
         } else if (aspectRatio > 1) {
-            layoutParams.topMargin = 25;
+            layoutParams.topMargin = DensityUtils.dp2px(mContext, 25);
         } else {
             layoutParams.topMargin = 0;
         }

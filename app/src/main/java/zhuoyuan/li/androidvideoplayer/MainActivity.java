@@ -1,17 +1,11 @@
 package zhuoyuan.li.androidvideoplayer;
 
-import android.media.AudioManager;
 import android.os.Bundle;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.IOException;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 import zhuoyuan.li.androidvideoplayer.data.VideoInfo;
 import zhuoyuan.li.androidvideoplayer.view.MyVideoView;
 
