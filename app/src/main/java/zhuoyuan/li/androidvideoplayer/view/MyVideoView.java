@@ -1,6 +1,7 @@
 package zhuoyuan.li.androidvideoplayer.view;
 
 import android.content.Context;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
@@ -28,6 +29,8 @@ import zhuoyuan.li.androidvideoplayer.data.VideoInfo;
 import zhuoyuan.li.androidvideoplayer.util.DensityUtils;
 import zhuoyuan.li.androidvideoplayer.util.ScreenUtils;
 import zhuoyuan.li.androidvideoplayer.util.TimeUtil;
+
+import static android.media.MediaPlayer.MEDIA_ERROR_SERVER_DIED;
 
 public class MyVideoView extends ConstraintLayout {
 
@@ -108,8 +111,9 @@ public class MyVideoView extends ConstraintLayout {
         loadFinish,
         playing,
         playEnd,
-        error,
-        pause
+        pause,
+        error_server,
+        error_unknown,
     }
 
     public MyVideoView(Context context) {
@@ -132,17 +136,24 @@ public class MyVideoView extends ConstraintLayout {
         videoView.setOnPreparedListener(mp -> {
             mVideoState = VideoState.loadFinish;
             totalPlayTextView.setText(TimeUtil.formatTimeWhichExist(mDuration));
-            videoThumb.setVisibility(GONE);
-            start();
-            if (mHandler != null) {
-                mHandler.sendEmptyMessage(UPDATE_PROGRESS);
-            }
+            mp.setOnInfoListener((mp1, what, extra) -> {
+                //这里是视频真正开始播放的时候
+                if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                    //隐藏图片
+                    videoThumb.setVisibility(GONE);
+                    changePlayIcon();
+                    mp.setLooping(true);
+                    if (mHandler != null) {
+                        mHandler.sendEmptyMessage(UPDATE_PROGRESS);
+                    }
+                    return true;
+                }
+                return false;
+            });
         });
-
         videoView.setOnCompletionListener(mp -> {
+            alreadyTextView.setText(TimeUtil.formatTimeWhichExist(mDuration));
             mVideoState = VideoState.playEnd;
-            mp.start();
-            mp.setLooping(true);
             if (mOnProgressChangedListener != null) {
                 mOnProgressChangedListener.onProgressChanged(mDuration);
             }
@@ -150,7 +161,13 @@ public class MyVideoView extends ConstraintLayout {
 
         videoView.setOnErrorListener((mp, what, extra) -> {
             //异常回调
-            mVideoState = VideoState.error;
+            if (what == MEDIA_ERROR_SERVER_DIED) {
+                //这才是  网络服务错误
+                mVideoState = VideoState.error_server;
+            } else {
+                //如果是1的话是未知错误
+                mVideoState = VideoState.error_unknown;
+            }
             mErrorLayout.setVisibility(VISIBLE);
             setProgressBarVisible(false);
             return true;
@@ -160,7 +177,7 @@ public class MyVideoView extends ConstraintLayout {
     }
 
     public void start() {
-        if (mVideoState == VideoState.playEnd || mVideoState == VideoState.error) {
+        if (mVideoState == VideoState.playEnd || mVideoState == VideoState.error_server) {
             videoView.resume();
             seekBarProgress.setProgress(0);
         } else {
@@ -287,15 +304,14 @@ public class MyVideoView extends ConstraintLayout {
                 return;
             }
             if (msg.what == UPDATE_PROGRESS) {
-                int currentTime = videoView.getCurrentPosition();
-                if (currentTime >= duration) {
+                if (videoView.getCurrentPosition() > duration) {
                     videoView.seekTo(0);
                     seekBarProgress.setProgress(0);
                     alreadyTextView.setText("00:00");
                 } else {
-                    seekBarProgress.setProgress(currentTime);
                     sendEmptyMessageDelayed(UPDATE_PROGRESS, 500);
-                    alreadyTextView.setText(TimeUtil.formatTimeWhichExist(currentTime));
+                    seekBarProgress.setProgress(videoView.getCurrentPosition());
+                    alreadyTextView.setText(TimeUtil.formatTimeWhichExist(videoView.getCurrentPosition() + 500));
                 }
             }
         }
