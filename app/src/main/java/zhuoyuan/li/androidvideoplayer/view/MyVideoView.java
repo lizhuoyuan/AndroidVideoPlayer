@@ -130,7 +130,6 @@ public class MyVideoView extends ConstraintLayout {
 
     private void initView() {
         videoView.setOnPreparedListener(mp -> {
-            mp.setLooping(true);
             mVideoState = VideoState.loadFinish;
             totalPlayTextView.setText(TimeUtil.formatTimeWhichExist(mDuration));
             videoThumb.setVisibility(GONE);
@@ -142,6 +141,8 @@ public class MyVideoView extends ConstraintLayout {
 
         videoView.setOnCompletionListener(mp -> {
             mVideoState = VideoState.playEnd;
+            mp.start();
+            mp.setLooping(true);
             if (mOnProgressChangedListener != null) {
                 mOnProgressChangedListener.onProgressChanged(mDuration);
             }
