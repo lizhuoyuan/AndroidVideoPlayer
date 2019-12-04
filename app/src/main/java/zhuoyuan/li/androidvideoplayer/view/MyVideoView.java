@@ -335,6 +335,4 @@ public class MyVideoView extends ConstraintLayout {
             }
         }
     }
-
-
 }

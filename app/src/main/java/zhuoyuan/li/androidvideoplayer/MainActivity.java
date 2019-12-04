@@ -86,17 +86,14 @@ public class MainActivity extends AppCompatActivity {
         release();
     }*/
 
-
     @Override
     protected void onPause() {
         super.onPause();
         mVideoView.stop();
     }
 
-
     @Override
     protected void onResume() {
-
         super.onResume();
         mVideoView.resume();
     }
