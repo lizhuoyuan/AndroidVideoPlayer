@@ -64,6 +64,7 @@ public class MyVideoView extends ConstraintLayout {
     private VideoState mVideoState = VideoState.unKnow;
     private int mDuration;
     private Context mContext;
+    private int pausePosition;
 
     private OnProgressChangedListener mOnProgressChangedListener = null;
 
@@ -104,6 +105,7 @@ public class MyVideoView extends ConstraintLayout {
                 mHandler.sendEmptyMessage(UPDATE_PROGRESS);
             }
         }
+
     };
 
     public enum VideoState {
@@ -192,11 +194,24 @@ public class MyVideoView extends ConstraintLayout {
     public void pause() {
         videoView.pause();
         mVideoState = VideoState.pause;
-
         changePlayIcon();
     }
 
+    /**
+     * 播放器重新可见时调用
+     */
+    public void resume() {
+        videoView.resume();
+        videoView.seekTo(pausePosition);
+        seekBarProgress.setProgress(pausePosition);
+        videoView.start();
+    }
+
+    /**
+     * 播放器不可见时调用
+     */
     public void stop() {
+        pausePosition = videoView.getCurrentPosition();
         videoView.stopPlayback();
         mHandler.removeMessages(UPDATE_PROGRESS);
     }
@@ -214,6 +229,10 @@ public class MyVideoView extends ConstraintLayout {
 
     public int getCurrentPosition() {
         return videoView.getCurrentPosition();
+    }
+
+    public int getBufferPercentage() {
+        return videoView.getBufferPercentage();
     }
 
     public void setVideo(VideoInfo video) {
@@ -316,4 +335,6 @@ public class MyVideoView extends ConstraintLayout {
             }
         }
     }
+
+
 }
