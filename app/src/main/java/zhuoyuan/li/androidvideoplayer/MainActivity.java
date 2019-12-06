@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        mVideoView.stop();
+        mVideoView.pause();
     }
 
     @Override

@@ -143,6 +143,7 @@ public class MyVideoView extends ConstraintLayout {
                 if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                     //隐藏图片
                     videoThumb.setVisibility(GONE);
+                    setProgressBarVisible(true);
                     changePlayIcon();
                     mp.setLooping(true);
                     if (mHandler != null) {
@@ -195,6 +196,7 @@ public class MyVideoView extends ConstraintLayout {
         videoView.pause();
         mVideoState = VideoState.pause;
         changePlayIcon();
+        pausePosition = videoView.getCurrentPosition();
     }
 
     /**
@@ -205,14 +207,18 @@ public class MyVideoView extends ConstraintLayout {
         videoView.seekTo(pausePosition);
         seekBarProgress.setProgress(pausePosition);
         videoView.start();
+        mHandler.sendEmptyMessage(UPDATE_PROGRESS);
     }
 
     /**
      * 播放器不可见时调用
      */
     public void stop() {
-        pausePosition = videoView.getCurrentPosition();
+        mVideoState = VideoState.playEnd;
         videoView.stopPlayback();
+        changePlayIcon();
+        seekBarProgress.setProgress(0);
+        videoThumb.setVisibility(VISIBLE);
         mHandler.removeMessages(UPDATE_PROGRESS);
     }
 
@@ -315,6 +321,9 @@ public class MyVideoView extends ConstraintLayout {
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             View rootView = mVideoViewWeakReference.get();
+            if (rootView == null) {
+                return;
+            }
             TextView alreadyTextView = rootView.findViewById(R.id.already_play_text);
             SeekBar seekBarProgress = rootView.findViewById(R.id.seek_bar_progress);
             VideoView videoView = rootView.findViewById(R.id.my_video_view);
@@ -322,17 +331,22 @@ public class MyVideoView extends ConstraintLayout {
             if (videoView == null) {
                 return;
             }
+
+            int pausePosition = videoView.getCurrentPosition();
             if (msg.what == UPDATE_PROGRESS) {
-                if (videoView.getCurrentPosition() > duration) {
+                if (pausePosition > duration) {
                     videoView.seekTo(0);
                     seekBarProgress.setProgress(0);
                     alreadyTextView.setText("00:00");
                 } else {
-                    sendEmptyMessageDelayed(UPDATE_PROGRESS, 500);
-                    seekBarProgress.setProgress(videoView.getCurrentPosition());
-                    alreadyTextView.setText(TimeUtil.formatTimeWhichExist(videoView.getCurrentPosition() + 500));
+                    sendEmptyMessageDelayed(UPDATE_PROGRESS, 1000);
+                    if (pausePosition > 0) {
+                        seekBarProgress.setProgress(pausePosition);
+                    }
+                    alreadyTextView.setText(TimeUtil.formatTimeWhichExist(pausePosition + 500));
                 }
             }
         }
     }
+
 }
